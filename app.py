@@ -25,21 +25,16 @@ def load_excel(url):
     return pd.read_excel(BytesIO(response.content)) if response.status_code == 200 else None
 
 def clean_attendance(df):
-    # Set proper column headers
     df.columns = ['S.No', 'Name'] + df.columns[2:].tolist()
     df = df.iloc[:, 1:]  # Drop S.No
-
-    # Remove empty rows
     df = df[df['Name'].notna() & (df['Name'].astype(str).str.strip() != '')].reset_index(drop=True)
 
-    # Convert attendance status
     for col in df.columns[1:]:
         if df[col].isna().all():
             df[col] = "YTD"
         else:
             df[col] = df[col].apply(lambda x: 'P' if str(x).strip().lower() == 'p' else 'A')
 
-    # Add new S.No column
     df.insert(0, 'S.No', range(1, len(df) + 1))
     return df
 
@@ -69,7 +64,6 @@ if att_df is not None and pre_df is not None:
 
     # --- Summary for Pre-test + Attendance ---
     summary_df = pd.merge(pre_clean, att_clean[['Name']], on="Name", how="right")
-
     avg_score = summary_df['Score'].mean().round(2)
     total_participants = summary_df.shape[0]
 
@@ -77,21 +71,18 @@ if att_df is not None and pre_df is not None:
     col1.metric("👥 Participants", total_participants)
     col2.metric("📊 Avg Pre-Test Score", f"{avg_score} / {MAX_SCORE}")
 
-    # --- Pre-Test Score Chart (Improved and readable) ---
+    # --- Pre-Test Score Chart ---
     st.markdown("### 📈 Pre-Test Scores (Top 3 in Green, Bottom 3 in Red)")
 
-    # Sort and color
     chart_df = summary_df.dropna(subset=["Score"]).sort_values(by="Score", ascending=False).reset_index(drop=True)
     colors = [
         "green" if i < 3 else "red" if i >= len(chart_df) - 3 else "skyblue"
         for i in range(len(chart_df))
     ]
 
-    # Plot
     fig, ax = plt.subplots(figsize=(max(10, len(chart_df) * 0.4), 6))
     bars = ax.bar(chart_df["Name"], chart_df["Score"], color=colors)
 
-    # Labels above bars
     for bar in bars:
         yval = bar.get_height()
         ax.text(
@@ -103,13 +94,14 @@ if att_df is not None and pre_df is not None:
             fontsize=9
         )
 
-     # Styling (UPDATED FOR CONSISTENCY)
-     ax.set_ylim(0, MAX_SCORE + 2)
-     ax.set_yticks(range(0, MAX_SCORE + 1))
-     ax.set_ylabel("Score", fontsize=10)  # Match Streamlit default
-     ax.set_title("🏆 Pre-Test Scores", fontsize=12, weight='bold')  # Smaller title
-     plt.xticks(rotation=40, ha='right', fontsize=10)  # Match axis label font size
+    # Styling (font-matched)
+    ax.set_ylim(0, MAX_SCORE + 2)
+    ax.set_yticks(range(0, MAX_SCORE + 1))
+    ax.set_ylabel("Score", fontsize=10)
+    ax.set_title("🏆 Pre-Test Scores", fontsize=12, weight='bold')
+    plt.xticks(rotation=40, ha='right', fontsize=10)
 
-    
+    st.pyplot(fig)
+
 else:
     st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
