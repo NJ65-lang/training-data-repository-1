@@ -25,16 +25,22 @@ def load_excel(url):
     return pd.read_excel(BytesIO(response.content)) if response.status_code == 200 else None
 
 def clean_attendance(df):
+    # Rename columns properly
     df.columns = ['S.No', 'Name'] + df.columns[2:].tolist()
-    df = df.iloc[:, 1:].reset_index(drop=True)  # Drop S.No and reset
+    df = df.iloc[:, 1:]  # Drop S.No
 
-    # Check if a date column has all NaNs (i.e., that day hasn't occurred)
+    # Remove rows where Name is NaN or blank
+    df = df[df['Name'].notna() & (df['Name'].astype(str).str.strip() != '')].reset_index(drop=True)
+
+    # Process attendance columns
     for col in df.columns[1:]:
         if df[col].isna().all():
             df[col] = "YTD"
         else:
             df[col] = df[col].apply(lambda x: 'P' if str(x).strip().lower() == 'p' else 'A')
 
+    # Add proper serial number column starting from 1
+    df.insert(0, 'S.No', range(1, len(df) + 1))
     return df
 
 def clean_pretest(df):
