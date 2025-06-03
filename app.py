@@ -103,14 +103,13 @@ if att_df is not None and pre_df is not None:
             fontsize=9
         )
 
-    # Styling
-    ax.set_ylim(0, MAX_SCORE + 2)
-    ax.set_yticks(range(0, MAX_SCORE + 1))
-    ax.set_ylabel("Score", fontsize=12)
-    ax.set_title("🏆 Pre-Test Scores", fontsize=14, weight='bold')
-    plt.xticks(rotation=40, ha='right', fontsize=9)
+     # Styling (UPDATED FOR CONSISTENCY)
+     ax.set_ylim(0, MAX_SCORE + 2)
+     ax.set_yticks(range(0, MAX_SCORE + 1))
+     ax.set_ylabel("Score", fontsize=10)  # Match Streamlit default
+     ax.set_title("🏆 Pre-Test Scores", fontsize=12, weight='bold')  # Smaller title
+     plt.xticks(rotation=40, ha='right', fontsize=10)  # Match axis label font size
 
-    st.pyplot(fig)
-
+    
 else:
     st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
