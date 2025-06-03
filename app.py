@@ -78,15 +78,33 @@ if att_df is not None and pre_df is not None:
     col2.metric("📊 Avg Pre-Test Score", f"{avg_score} / {MAX_SCORE}")
 
     # --- Pre-Test Score Chart ---
-    st.markdown("### 📈 Pre-Test Score Distribution")
-    chart_df = summary_df.dropna(subset=["Score"]).sort_values(by="Score", ascending=False)
-    fig, ax = plt.subplots(figsize=(12, 4))
-    bars = ax.bar(chart_df["Name"], chart_df["Score"], color="mediumseagreen")
-    ax.set_ylim(0, MAX_SCORE)
-    ax.set_ylabel("Score")
-    ax.set_title("Participant Pre-Test Scores (out of 15)")
-    plt.xticks(rotation=45, ha='right')
-    st.pyplot(fig)
+  # --- Pre-Test Score Chart (Improved with color coding) ---
+st.markdown("### 📈 Pre-Test Scores (Top 3 in Green, Bottom 3 in Red)")
+
+# Sort and color
+chart_df = summary_df.dropna(subset=["Score"]).sort_values(by="Score", ascending=False).reset_index(drop=True)
+colors = [
+    "green" if i < 3 else "red" if i >= len(chart_df) - 3 else "skyblue"
+    for i in range(len(chart_df))
+]
+
+# Plot
+fig, ax = plt.subplots(figsize=(10, 5))
+bars = ax.bar(chart_df["Name"], chart_df["Score"], color=colors)
+
+# Labels
+for bar in bars:
+    yval = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width() / 2, yval + 0.3, f'{yval}', ha='center', va='bottom')
+
+# Styling
+ax.set_ylim(0, MAX_SCORE)
+ax.set_yticks(range(0, MAX_SCORE + 1))
+ax.set_ylabel("Score")
+ax.set_title("🏆 Pre-Test Scores")
+plt.xticks(rotation=45)
+
+st.pyplot(fig)
 
 else:
     st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
