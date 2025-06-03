@@ -77,8 +77,7 @@ if att_df is not None and pre_df is not None:
     col1.metric("👥 Participants", total_participants)
     col2.metric("📊 Avg Pre-Test Score", f"{avg_score} / {MAX_SCORE}")
 
-    # --- Pre-Test Score Chart ---
-  # --- Pre-Test Score Chart (Improved with color coding) ---
+     # --- Pre-Test Score Chart (Improved with color coding) ---
 st.markdown("### 📈 Pre-Test Scores (Top 3 in Green, Bottom 3 in Red)")
 
 # Sort and color
