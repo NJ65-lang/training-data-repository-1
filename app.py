@@ -108,12 +108,3 @@ if att_df is not None and pre_df is not None:
 
 else:
     st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
-
-
-
-
-
-
-
-else:
-    st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
