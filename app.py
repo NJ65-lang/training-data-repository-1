@@ -5,11 +5,11 @@ from io import BytesIO
 import requests
 
 st.set_page_config(page_title="Training Dashboard", layout="wide")
-st.title("📊 AI Training Rollout Dashboard")
+st.title("📊 Microsoft AXP Team Training Rollout")
 
 # --- CONFIGURATION ---
-GITHUB_USER = "your-github-username"
-GITHUB_REPO = "training-dashboard"
+GITHUB_USER = "NJ65-lang"
+GITHUB_REPO = "training-data-repository-1"
 BRANCH = "main"  # or 'master'
 BATCHES = ["batch_1"]  # Later add batch_2, batch_3, etc.
 MAX_SCORE = 15
