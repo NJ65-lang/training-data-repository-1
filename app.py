@@ -18,7 +18,7 @@ MAX_SCORE = 15
 def github_url(batch, file):
     path=f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}/{batch}/{file}"
     
-    st.warning(path)
+    # st.warning(path)
     return path
 def load_excel(url):
     response = requests.get(url)
@@ -49,7 +49,7 @@ selected_batch = st.selectbox("📁 Select Batch", BATCHES)
 # --- Load Data from GitHub ---
 att_url = github_url(selected_batch, "attendance.xlsx")
 pre_url = github_url(selected_batch, "pretest.xlsx")
-st.warning(att_url)
+# st.warning(att_url)
 att_df = load_excel(att_url)
 pre_df = load_excel(pre_url)
 
