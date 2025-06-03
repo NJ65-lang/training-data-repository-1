@@ -25,21 +25,21 @@ def load_excel(url):
     return pd.read_excel(BytesIO(response.content)) if response.status_code == 200 else None
 
 def clean_attendance(df):
-    # Rename columns properly
+    # Set proper column headers
     df.columns = ['S.No', 'Name'] + df.columns[2:].tolist()
     df = df.iloc[:, 1:]  # Drop S.No
 
-    # Remove rows where Name is NaN or blank
+    # Remove empty rows
     df = df[df['Name'].notna() & (df['Name'].astype(str).str.strip() != '')].reset_index(drop=True)
 
-    # Process attendance columns
+    # Convert attendance status
     for col in df.columns[1:]:
         if df[col].isna().all():
             df[col] = "YTD"
         else:
             df[col] = df[col].apply(lambda x: 'P' if str(x).strip().lower() == 'p' else 'A')
 
-    # Add proper serial number column starting from 1
+    # Add new S.No column
     df.insert(0, 'S.No', range(1, len(df) + 1))
     return df
 
@@ -62,14 +62,14 @@ if att_df is not None and pre_df is not None:
     att_clean = clean_attendance(att_df)
     pre_clean = clean_pretest(pre_df)
 
-    # Show daily attendance table
-    st.markdown("### 📋 Daily Attendance Record (P = Present, A = Absent)")
+    # --- Daily Attendance Table ---
+    st.markdown("### 📋 Daily Attendance Record")
     st.dataframe(att_clean, use_container_width=True)
+    st.caption("🔹 **Legend:** P = Present, A = Absent, YTD = Yet to be Delivered")
 
-    # Merge for score dashboard only
-    summary_df = pd.merge(pre_clean, att_clean, on="Name", how="outer").dropna(subset=["Name"])
+    # --- Summary for Pre-test + Attendance (optional for score chart) ---
+    summary_df = pd.merge(pre_clean, att_clean[['Name']], on="Name", how="right")
 
-    # --- KPI Cards ---
     avg_score = summary_df['Score'].mean().round(2)
     total_participants = summary_df.shape[0]
 
