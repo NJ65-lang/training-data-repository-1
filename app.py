@@ -16,7 +16,7 @@ MAX_SCORE = 15
 
 # --- HELPERS ---
 def github_url(batch, file):
-    path=f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}/{batch}/{file}"
+    path=f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}/{batch}/{file}"
     print(path)
     return path
 def load_excel(url):
