@@ -6,7 +6,7 @@ import requests
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Training Dashboard", layout="wide")
-st.markdown("## 🚀 Microsoft AXP Team Training Rollout Dashboard")
+st.markdown("## 🚀 Training Roll Out Tracker-Designing Intelligent Agentic AI Systems with LLMs")
 st.markdown("---")
 
 # --- CONFIGURATION ---
@@ -65,7 +65,7 @@ if att_df is not None and pre_df is not None:
     col3.metric("🕒 Avg Attendance", f"{avg_att}%")
 
     # --- Data Table ---
-    st.markdown("### 📋 Participant Summary")
+    st.markdown("### 📋 Attendance Details")
     st.dataframe(summary_df.style.background_gradient(cmap="Blues", subset=["Score", "Attendance %"]), use_container_width=True)
 
     # --- Pre-Test Score Chart ---
