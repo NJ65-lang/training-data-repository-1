@@ -78,33 +78,40 @@ if att_df is not None and pre_df is not None:
     col2.metric("📊 Avg Pre-Test Score", f"{avg_score} / {MAX_SCORE}")
 
      # --- Pre-Test Score Chart (Improved with color coding) ---
-    # --- Pre-Test Score Chart (Improved with color coding) ---
-    st.markdown("### 📈 Pre-Test Scores (Top 3 in Green, Bottom 3 in Red)")
+        # --- Pre-Test Score Chart (Improved and readable) ---
+st.markdown("### 📈 Pre-Test Scores (Top 3 in Green, Bottom 3 in Red)")
 
-    # Sort and color
-    chart_df = summary_df.dropna(subset=["Score"]).sort_values(by="Score", ascending=False).reset_index(drop=True)
-    colors = [
-        "green" if i < 3 else "red" if i >= len(chart_df) - 3 else "skyblue"
-        for i in range(len(chart_df))
-    ]
+# Sort and color
+chart_df = summary_df.dropna(subset=["Score"]).sort_values(by="Score", ascending=False).reset_index(drop=True)
+colors = [
+    "green" if i < 3 else "red" if i >= len(chart_df) - 3 else "skyblue"
+    for i in range(len(chart_df))
+]
 
-    # Plot
-    fig, ax = plt.subplots(figsize=(10, 5))
-    bars = ax.bar(chart_df["Name"], chart_df["Score"], color=colors)
+# Plot
+fig, ax = plt.subplots(figsize=(max(10, len(chart_df) * 0.4), 6))  # Dynamically adjust width
+bars = ax.bar(chart_df["Name"], chart_df["Score"], color=colors)
 
-    # Labels
-    for bar in bars:
-        yval = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width() / 2, yval + 0.3, f'{yval}', ha='center', va='bottom')
+# Labels above bars with spacing
+for bar in bars:
+    yval = bar.get_height()
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        yval + 0.3,
+        f'{yval:.1f}',
+        ha='center',
+        va='bottom',
+        fontsize=9
+    )
 
-    # Styling
-    ax.set_ylim(0, MAX_SCORE)
-    ax.set_yticks(range(0, MAX_SCORE + 1))
-    ax.set_ylabel("Score")
-    ax.set_title("🏆 Pre-Test Scores")
-    plt.xticks(rotation=45)
+# Styling
+ax.set_ylim(0, MAX_SCORE + 2)
+ax.set_yticks(range(0, MAX_SCORE + 1))
+ax.set_ylabel("Score", fontsize=12)
+ax.set_title("🏆 Pre-Test Scores", fontsize=14, weight='bold')
+plt.xticks(rotation=40, ha='right', fontsize=9)
 
-    st.pyplot(fig)
+st.pyplot(fig)
 
 else:
     st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
