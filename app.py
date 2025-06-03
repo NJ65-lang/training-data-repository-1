@@ -6,7 +6,7 @@ import requests
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Training Dashboard", layout="wide")
-st.markdown("## 🚀 Training Roll Out Tracker-Designing Intelligent Agentic AI Systems with LLMs")
+st.markdown("## 🚀 Training Roll Out Tracker - Designing Intelligent Agentic AI Systems with LLMs")
 st.markdown("---")
 
 # --- CONFIGURATION ---
@@ -25,14 +25,14 @@ def load_excel(url):
     return pd.read_excel(BytesIO(response.content)) if response.status_code == 200 else None
 
 def clean_attendance(df):
-    df.columns = ['S.No', 'Name'] + df.iloc[0, 2:].tolist()
-    df = df.iloc[1:].reset_index(drop=True)
-    df.iloc[:, 2:] = df.iloc[:, 2:].fillna('-')
-    df['Days Present'] = df.iloc[:, 2:].apply(lambda row: (row == 'p').sum(), axis=1)
-    total_days = len(df.columns[2:-2])
-    df['Total Days'] = total_days
-    df['Attendance %'] = (df['Days Present'] / total_days * 100).round(2)
-    return df[['Name', 'Days Present', 'Attendance %']]
+    df.columns = ['S.No', 'Name'] + df.columns[2:].tolist()  # Ensure proper header names
+    df = df.iloc[:, 1:]  # Drop S.No
+    df = df.reset_index(drop=True)
+
+    # Convert attendance to 'P' or 'A'
+    df.iloc[:, 1:] = df.iloc[:, 1:].applymap(lambda x: 'P' if str(x).strip().lower() == 'p' else 'A')
+    
+    return df
 
 def clean_pretest(df):
     df = df[['Full name', 'Total points']].dropna()
@@ -52,21 +52,21 @@ pre_df = load_excel(pre_url)
 if att_df is not None and pre_df is not None:
     att_clean = clean_attendance(att_df)
     pre_clean = clean_pretest(pre_df)
-    summary_df = pd.merge(att_clean, pre_clean, on="Name", how="outer").dropna(subset=["Name"])
+
+    # Show daily attendance table
+    st.markdown("### 📋 Daily Attendance Record (P = Present, A = Absent)")
+    st.dataframe(att_clean, use_container_width=True)
+
+    # Merge for score dashboard only
+    summary_df = pd.merge(pre_clean, att_clean, on="Name", how="outer").dropna(subset=["Name"])
 
     # --- KPI Cards ---
     avg_score = summary_df['Score'].mean().round(2)
-    avg_att = summary_df['Attendance %'].mean().round(2)
     total_participants = summary_df.shape[0]
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     col1.metric("👥 Participants", total_participants)
     col2.metric("📊 Avg Pre-Test Score", f"{avg_score} / {MAX_SCORE}")
-    col3.metric("🕒 Avg Attendance", f"{avg_att}%")
-
-    # --- Data Table ---
-    st.markdown("### 📋 Attendance Details")
-    st.dataframe(summary_df.style.background_gradient(cmap="Blues", subset=["Score", "Attendance %"]), use_container_width=True)
 
     # --- Pre-Test Score Chart ---
     st.markdown("### 📈 Pre-Test Score Distribution")
