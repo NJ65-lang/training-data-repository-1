@@ -11,7 +11,7 @@ st.title("📊 Microsoft AXP Team Training Rollout")
 GITHUB_USER = "NJ65-lang"
 GITHUB_REPO = "training-data-repository-1"
 BRANCH = "main"  # or 'master'
-BATCHES = ["batch_1"]  # Later add batch_2, batch_3, etc.
+BATCHES = ["batch_1","batch_2"]  # Later add batch_2, batch_3, etc.
 MAX_SCORE = 15
 
 # --- HELPERS ---
