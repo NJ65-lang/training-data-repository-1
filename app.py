@@ -16,7 +16,7 @@ MAX_SCORE = 15
 
 # --- HELPERS ---
 def github_url(batch, file):
-    path=f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}{batch}/{file}"
+    path=f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}/{batch}/{file}"
     
     st.warning(path)
     return path
