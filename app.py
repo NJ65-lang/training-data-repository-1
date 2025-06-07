@@ -6,6 +6,20 @@ from io import BytesIO
 import requests
 
 st.set_page_config(page_title="Training Roll Out Dashboard", layout="wide")
+st.markdown("""
+    <style>
+    /* Make all tables (st.dataframe, st.table) have bigger font */
+    .stDataFrame div, .stTable th, .stTable td {
+        font-size: 20px !important;
+    }
+    /* Optionally: make header cells extra bold and big */
+    .stDataFrame th, .stTable th {
+        font-size: 22px !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.markdown("<h1 style='font-size: 2.8rem;'>🚀 Training Roll Out Dashboard</h1>", unsafe_allow_html=True)
 
 # --- GitHub REPO DETAILS ---
