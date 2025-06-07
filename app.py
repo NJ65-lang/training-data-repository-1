@@ -1,107 +1,101 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from io import BytesIO
-import requests
 
-# --- Streamlit Page Config ---
-st.set_page_config(page_title="Training Dashboard", layout="wide")
-st.markdown("## 🚀 Training Roll Out Tracker - Designing Intelligent Agentic AI Systems with LLMs")
-st.markdown("---")
+# --- Load files (local, as per Streamlit upload or direct file path) ---
+attendance = pd.read_excel("attendance.xlsx")
+pretest = pd.read_excel("pretest.xlsx")
+posttest = pd.read_excel("posttest.xlsx")
+feedback = pd.read_excel("feedback.xlsx")
 
-# --- CONFIGURATION ---
-GITHUB_USER = "NJ65-lang"
-GITHUB_REPO = "training-data-repository-1"
-BRANCH = "main"
-BATCHES = ["batch_1", "batch_2"]
 MAX_SCORE = 15
 
-# --- Helper Functions ---
-def github_url(batch, file):
-    return f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}/{batch}/{file}"
+# --- Clean Attendance ---
+att_df = attendance.rename(columns={"Please enter your Name": "Name"})
+att_df['Name'] = att_df['Name'].astype(str).str.strip().str.lower()
+att_clean = att_df[['Name'] + [c for c in att_df.columns if c not in ['Name']]]
 
-def load_excel(url):
-    response = requests.get(url)
-    return pd.read_excel(BytesIO(response.content)) if response.status_code == 200 else None
-
-def clean_attendance(df):
-    df.columns = ['S.No', 'Name'] + df.columns[2:].tolist()
-    df = df.iloc[:, 1:]  # Drop S.No
-    df = df[df['Name'].notna() & (df['Name'].astype(str).str.strip() != '')].reset_index(drop=True)
-
-    for col in df.columns[1:]:
-        if df[col].isna().all():
-            df[col] = "YTD"
-        else:
-            df[col] = df[col].apply(lambda x: 'P' if str(x).strip().lower() == 'p' else 'A')
-
-    df.insert(0, 'S.No', range(1, len(df) + 1))
+# --- Clean Pre/Post Test ---
+def clean_test(df):
+    df = df.rename(columns={"Full name": "Name"})
+    df['Name'] = df['Name'].astype(str).str.strip().str.lower()
+    df = df[['Name', 'Total points']].dropna(subset=['Name'])
+    df['Total points'] = pd.to_numeric(df['Total points'], errors='coerce')
     return df
 
-def clean_pretest(df):
-    df = df[['Full name', 'Total points']].dropna()
-    df.columns = ['Name', 'Score']
-    df['Score %'] = (df['Score'] / MAX_SCORE * 100).round(2)
-    return df
+pre_clean = clean_test(pretest)
+post_clean = clean_test(posttest)
 
-# --- UI: Select Batch ---
-selected_batch = st.selectbox("📁 Select Training Batch", BATCHES)
+# --- Merge Pre/Post ---
+all_names = pd.DataFrame({'Name': pd.concat([att_clean['Name'], pre_clean['Name'], post_clean['Name']]).drop_duplicates()})
+scores_df = all_names \
+    .merge(pre_clean.rename(columns={'Total points': 'Pretest'}), on='Name', how='left') \
+    .merge(post_clean.rename(columns={'Total points': 'Posttest'}), on='Name', how='left')
 
-# --- Load Data ---
-att_url = github_url(selected_batch, "attendance.xlsx")
-pre_url = github_url(selected_batch, "pretest.xlsx")
-att_df = load_excel(att_url)
-pre_df = load_excel(pre_url)
+def score_display(x):
+    return int(x) if pd.notnull(x) else "Not Appeared"
 
-if att_df is not None and pre_df is not None:
-    att_clean = clean_attendance(att_df)
-    pre_clean = clean_pretest(pre_df)
+scores_df['Pretest_Display'] = scores_df['Pretest'].apply(score_display)
+scores_df['Posttest_Display'] = scores_df['Posttest'].apply(score_display)
+scores_df['Improvement'] = scores_df.apply(
+    lambda row: row['Posttest'] - row['Pretest'] if pd.notnull(row['Pretest']) and pd.notnull(row['Posttest']) else "Not Appeared",
+    axis=1
+)
+scores_df['Improvement %'] = scores_df.apply(
+    lambda row: round(row['Improvement'] / MAX_SCORE * 100, 2) if isinstance(row['Improvement'], (int, float, np.floating)) else "Not Appeared",
+    axis=1
+)
 
-    # --- Daily Attendance Table ---
-    st.markdown("### 📋 Daily Attendance Record")
-    st.dataframe(att_clean, use_container_width=True)
-    st.caption("🔹 **Legend:** P = Present, A = Absent, YTD = Yet to be Delivered")
+# --- Summary (only for both pre and post) ---
+valid_rows = scores_df[scores_df['Improvement'] != "Not Appeared"]
+total_participants = len(all_names)
+avg_pre = valid_rows['Pretest'].mean().round(2) if not valid_rows.empty else 0
+avg_post = valid_rows['Posttest'].mean().round(2) if not valid_rows.empty else 0
+avg_improve = valid_rows['Improvement'].mean().round(2) if not valid_rows.empty else 0
 
-    # --- Summary for Pre-test + Attendance ---
-    summary_df = pd.merge(pre_clean, att_clean[['Name']], on="Name", how="right")
-    avg_score = summary_df['Score'].mean().round(2)
-    total_participants = summary_df.shape[0]
+# --- Feedback Cleaning ---
+fb = feedback.rename(columns={"Please enter your Name": "Name"})
+fb['Name'] = fb['Name'].astype(str).str.strip().str.lower()
+fb = fb[['Name', '1) Quality of Demos', '2) Presentation skills of trainer',
+         '3) Query solving by trainer', '4) Overall quality of program']].copy()
+fb_scores = fb.set_index('Name').mean(axis=1)
+fb['Feedback Avg'] = fb_scores
 
-    col1, col2 = st.columns(2)
-    col1.metric("👥 Participants", total_participants)
-    col2.metric("📊 Avg Pre-Test Score", f"{avg_score} / {MAX_SCORE}")
+# --- Streamlit UI ---
+st.title("Training Roll Out Dashboard")
 
-    # --- Pre-Test Score Chart ---
-    st.markdown("### 📈 Pre-Test Scores (Top 3 in Green, Bottom 3 in Red)")
+st.header("Attendance")
+st.dataframe(att_clean, use_container_width=True)
 
-    chart_df = summary_df.dropna(subset=["Score"]).sort_values(by="Score", ascending=False).reset_index(drop=True)
-    colors = [
-        "green" if i < 3 else "red" if i >= len(chart_df) - 3 else "skyblue"
-        for i in range(len(chart_df))
-    ]
+st.header("Pre/Post Test & Improvement")
+st.dataframe(scores_df[['Name', 'Pretest_Display', 'Posttest_Display', 'Improvement', 'Improvement %']], use_container_width=True)
 
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("👥 Participants", total_participants)
+c2.metric("📊 Avg Pre-Test (Both)", f"{avg_pre} / {MAX_SCORE}")
+c3.metric("📈 Avg Post-Test (Both)", f"{avg_post} / {MAX_SCORE}")
+c4.metric("🚀 Avg Improvement", f"{avg_improve}")
+
+if not valid_rows.empty:
+    chart_df = valid_rows.sort_values(by="Improvement", ascending=False)
     fig, ax = plt.subplots(figsize=(max(10, len(chart_df) * 0.4), 6))
-    bars = ax.bar(chart_df["Name"], chart_df["Score"], color=colors)
-
+    bars = ax.bar(chart_df["Name"], chart_df["Improvement"], color="skyblue")
     for bar in bars:
         yval = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            yval + 0.3,
-            f'{yval:.1f}',
-            ha='center',
-            va='bottom',
-            fontsize=9
-        )
-
-    # Styling (font-matched)
-    ax.set_ylim(0, MAX_SCORE + 2)
-    ax.set_yticks(range(0, MAX_SCORE + 1))
-    ax.set_ylabel("Score", fontsize=10)
-    ax.set_title("🏆 Pre-Test Scores", fontsize=12, weight='bold')
+        ax.text(bar.get_x() + bar.get_width() / 2, yval + 0.3, f'{yval:.1f}', ha='center', va='bottom', fontsize=9)
+    ax.set_ylabel("Improvement")
+    ax.set_title("Improvement: Post-Test vs Pre-Test (Only Both)")
     plt.xticks(rotation=40, ha='right', fontsize=10)
-
     st.pyplot(fig)
-
 else:
-    st.error("❌ Failed to load one or both Excel files. Please check the file names or GitHub URLs.")
+    st.info("No participants appeared for both pre and post tests.")
+
+st.header("Feedback (Averaged)")
+st.dataframe(fb[['Name', '1) Quality of Demos', '2) Presentation skills of trainer',
+                 '3) Query solving by trainer', '4) Overall quality of program', 'Feedback Avg']], use_container_width=True)
+if not fb['Feedback Avg'].isnull().all():
+    st.success(f"⭐ **Average Feedback Score:** {fb['Feedback Avg'].mean().round(2)}")
+else:
+    st.info("No feedback scores available for this batch.")
