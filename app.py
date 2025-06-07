@@ -7,18 +7,16 @@ import requests
 
 st.set_page_config(page_title="Training Roll Out Dashboard", layout="wide")
 st.markdown("<h1 style='font-size: 2.8rem;'>🚀 Training Roll Out Dashboard</h1>", unsafe_allow_html=True)
-# Bigger font for all HTML tables
 st.markdown("""
     <style>
     .big-font { font-size: 22px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- GitHub REPO DETAILS ---
 GITHUB_USER = "NJ65-lang"
 GITHUB_REPO = "training-data-repository-1"
 BRANCH = "main"
-BATCHES = ["batch_1", "batch_2"]  # Add more batch folders as needed
+BATCHES = ["batch_1", "batch_2"]
 MAX_SCORE = 15
 
 def github_url(batch, file):
@@ -79,10 +77,8 @@ def clean_feedback(df):
         fb[col] = pd.to_numeric(fb[col], errors='coerce')
     return fb, feedback_cols, appreciations_col
 
-# --- BATCH SELECTOR ---
 selected_batch = st.selectbox("📁 Select Training Batch", BATCHES)
 
-# --- Load All Data from GitHub ---
 att_url = github_url(selected_batch, "attendance.xlsx")
 pre_url = github_url(selected_batch, "pretest.xlsx")
 post_url = github_url(selected_batch, "posttest.xlsx")
@@ -102,38 +98,43 @@ if attendance is not None and pretest is not None and posttest is not None and f
     if any(x is None for x in [att_clean, pre_clean, post_clean, fb]):
         st.error("One or more files could not be parsed due to missing key columns. See above errors.")
     else:
-        # --- Attendance Table ---
+        # Attendance Table
         st.markdown("<h2 class='big-font'>📋 Attendance</h2>", unsafe_allow_html=True)
         st.markdown(att_clean.to_html(index=False, classes='big-font'), unsafe_allow_html=True)
 
-        # --- Pre-test Table ---
+        # Pre-test Table
         st.markdown("<h2 class='big-font'>🧪 Pre-Test Scores</h2>", unsafe_allow_html=True)
         pre_disp = pre_clean.copy()
-        pre_disp['Total points'] = pre_disp['Total points'].apply(lambda x: int(x) if pd.notnull(x) else "")
+        pre_disp['Total points'] = pre_disp['Total points'].apply(lambda x: int(x) if pd.notnull(x) else "NA")
+        pre_disp['Name'] = pre_disp['Name'].str.title()   # Capitalize name for display
         st.markdown(pre_disp.to_html(index=False, classes='big-font'), unsafe_allow_html=True)
 
-        # --- Post-test Table ---
+        # Post-test Table
         st.markdown("<h2 class='big-font'>🏁 Post-Test Scores</h2>", unsafe_allow_html=True)
         post_disp = post_clean.copy()
-        post_disp['Total points'] = post_disp['Total points'].apply(lambda x: int(x) if pd.notnull(x) else "")
+        post_disp['Total points'] = post_disp['Total points'].apply(lambda x: int(x) if pd.notnull(x) else "NA")
+        post_disp['Name'] = post_disp['Name'].str.title()
         st.markdown(post_disp.to_html(index=False, classes='big-font'), unsafe_allow_html=True)
 
-        # ---- Feedback: Averaged for each parameter (bar chart) ----
+        # Feedback Chart (improved x-axis readability)
         st.markdown("<h2 style='font-size:1.8rem;'>💬 Feedback Summary (Parameter-wise Averages)</h2>", unsafe_allow_html=True)
         feedback_avgs = fb[feedback_cols].mean().round(2)
-        fig2, ax2 = plt.subplots(figsize=(7, 4))
+        fig2, ax2 = plt.subplots(figsize=(9, 4))
         bars2 = ax2.bar(feedback_avgs.index, feedback_avgs.values, color='#6C63FF')
         ax2.set_ylim(0, 5)
         for i, bar in enumerate(bars2):
             yval = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2, yval + 0.08, f'{yval:.2f}', ha='center', va='bottom', fontsize=15)
-        ax2.set_title("Average Feedback per Parameter", fontsize=18)
-        ax2.set_ylabel("Average Score (out of 5)", fontsize=15)
-        ax2.tick_params(axis='x', labelsize=14)
-        ax2.tick_params(axis='y', labelsize=13)
+            ax2.text(bar.get_x() + bar.get_width()/2, yval + 0.08, f'{yval:.2f}', ha='center', va='bottom', fontsize=14)
+        ax2.set_title("Average Feedback per Parameter", fontsize=17)
+        ax2.set_ylabel("Average Score (out of 5)", fontsize=13)
+        # Make X labels not overlap
+        ax2.set_xticks(np.arange(len(feedback_avgs.index)))
+        ax2.set_xticklabels(feedback_avgs.index, rotation=20, ha='right', fontsize=14, wrap=True)
+        ax2.tick_params(axis='y', labelsize=12)
+        fig2.tight_layout()
         st.pyplot(fig2)
 
-        # ---- Appreciations Section ----
+        # Appreciations Section
         if appreciations_col:
             appreciations = fb[appreciations_col].dropna().astype(str).unique()
             if appreciations.size > 0:
