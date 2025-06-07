@@ -100,7 +100,7 @@ if attendance is not None and pretest is not None and posttest is not None and f
     post_clean = clean_test(posttest)
     fb, feedback_cols = clean_feedback(feedback)
 
-    if any(x is None for x in [att_clean, pre_clean, post_clean, fb]:
+    if any(x is None for x in [att_clean, pre_clean, post_clean, fb]):
         st.error("One or more files could not be parsed due to missing key columns. See above errors.")
     else:
         # --- Merge Pre/Post ---
