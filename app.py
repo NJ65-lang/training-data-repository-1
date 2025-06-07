@@ -10,11 +10,11 @@ st.markdown("""
     <style>
     /* Make all tables (st.dataframe, st.table) have bigger font */
     .stDataFrame div, .stTable th, .stTable td {
-        font-size: 20px !important;
+        font-size: 40px !important;
     }
     /* Optionally: make header cells extra bold and big */
     .stDataFrame th, .stTable th {
-        font-size: 22px !important;
+        font-size: 44px !important;
         font-weight: bold !important;
     }
     </style>
