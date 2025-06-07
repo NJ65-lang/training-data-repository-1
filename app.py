@@ -6,7 +6,7 @@ from io import BytesIO
 import requests
 
 st.set_page_config(page_title="Training Roll Out Dashboard", layout="wide")
-st.title("🚀 Training Roll Out Dashboard")
+st.markdown("<h1 style='font-size: 2.8rem;'>🚀 Training Roll Out Dashboard</h1>", unsafe_allow_html=True)
 
 # --- GitHub REPO DETAILS ---
 GITHUB_USER = "NJ65-lang"
@@ -57,24 +57,22 @@ def clean_test(df):
 def clean_feedback(df):
     fb_cols = df.columns.tolist()
     name_col = find_name_col(fb_cols)
-    # Find feedback questions
-    feedback_cols = [c for c in fb_cols if ')' in c and 'quality' in c.lower() or 'presentation' in c.lower() or 'query' in c.lower()]
-    # Ensure overall quality is included
-    if "4) Overall quality of program" not in feedback_cols and "4) overall quality of program" in [c.lower() for c in fb_cols]:
-        for c in fb_cols:
-            if "4) overall quality of program" == c.lower():
-                feedback_cols.append(c)
+    # Find feedback question columns (numeric responses)
+    feedback_cols = [c for c in fb_cols if (c.strip().startswith('1)') or c.strip().startswith('2)') or c.strip().startswith('3)') or c.strip().startswith('4)'))]
+    appreciations_col = None
+    for c in fb_cols:
+        if 'appreciation' in c.lower():
+            appreciations_col = c
+            break
     if not name_col or not feedback_cols:
         st.error(f"Could not find a 'Name' column or feedback questions in feedback file. Columns found: {fb_cols}")
-        return None
+        return None, None, None
     fb_df = df.rename(columns={name_col: "Name"})
     fb_df['Name'] = fb_df['Name'].astype(str).str.strip().str.lower()
-    fb = fb_df[['Name'] + feedback_cols].copy()
-    # Convert feedback columns to numeric for averaging
+    fb = fb_df[['Name'] + feedback_cols + ([appreciations_col] if appreciations_col else [])].copy()
     for col in feedback_cols:
         fb[col] = pd.to_numeric(fb[col], errors='coerce')
-    fb['Feedback Avg'] = fb[feedback_cols].mean(axis=1)
-    return fb, feedback_cols
+    return fb, feedback_cols, appreciations_col
 
 def score_display(x):
     return int(x) if pd.notnull(x) else "Not Appeared"
@@ -98,7 +96,7 @@ if attendance is not None and pretest is not None and posttest is not None and f
     att_clean = clean_attendance(attendance)
     pre_clean = clean_test(pretest)
     post_clean = clean_test(posttest)
-    fb, feedback_cols = clean_feedback(feedback)
+    fb, feedback_cols, appreciations_col = clean_feedback(feedback)
 
     if any(x is None for x in [att_clean, pre_clean, post_clean, fb]):
         st.error("One or more files could not be parsed due to missing key columns. See above errors.")
@@ -127,11 +125,10 @@ if attendance is not None and pretest is not None and posttest is not None and f
         avg_post = valid_rows['Posttest'].mean().round(2) if not valid_rows.empty else 0
         avg_improve = valid_rows['Improvement'].mean().round(2) if not valid_rows.empty else 0
 
-        # --- UI Display ---
-        st.header("📋 Attendance")
+        st.markdown("<h2 style='font-size:1.8rem;'>📋 Attendance</h2>", unsafe_allow_html=True)
         st.dataframe(att_clean, use_container_width=True)
 
-        st.header("📝 Pre/Post Test & Improvement")
+        st.markdown("<h2 style='font-size:1.8rem;'>📝 Pre/Post Test & Improvement</h2>", unsafe_allow_html=True)
         st.dataframe(scores_df[['Name', 'Pretest_Display', 'Posttest_Display', 'Improvement', 'Improvement %']], use_container_width=True)
 
         c1, c2, c3, c4 = st.columns(4)
@@ -146,20 +143,44 @@ if attendance is not None and pretest is not None and posttest is not None and f
             bars = ax.bar(chart_df["Name"], chart_df["Improvement"], color="skyblue")
             for bar in bars:
                 yval = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width() / 2, yval + 0.3, f'{yval:.1f}', ha='center', va='bottom', fontsize=9)
-            ax.set_ylabel("Improvement")
-            ax.set_title("Improvement: Post-Test vs Pre-Test (Only Both)")
-            plt.xticks(rotation=40, ha='right', fontsize=10)
+                ax.text(bar.get_x() + bar.get_width() / 2, yval + 0.3, f'{yval:.1f}', ha='center', va='bottom', fontsize=12)
+            ax.set_ylabel("Improvement", fontsize=14)
+            ax.set_title("Improvement: Post-Test vs Pre-Test (Only Both)", fontsize=16)
+            plt.xticks(rotation=40, ha='right', fontsize=12)
+            plt.yticks(fontsize=12)
             st.pyplot(fig)
         else:
             st.info("No participants appeared for both pre and post tests.")
 
-        st.header("💬 Feedback (Averaged)")
-        st.dataframe(fb[['Name'] + feedback_cols + ['Feedback Avg']], use_container_width=True)
-        if not fb['Feedback Avg'].isnull().all():
-            st.success(f"⭐ **Average Feedback Score:** {fb['Feedback Avg'].mean().round(2)}")
+        # ---- Feedback: Averaged for each parameter (bar chart) ----
+        st.markdown("<h2 style='font-size:1.8rem;'>💬 Feedback Summary (Parameter-wise Averages)</h2>", unsafe_allow_html=True)
+        feedback_avgs = fb[feedback_cols].mean().round(2)
+        fig2, ax2 = plt.subplots(figsize=(7, 4))
+        bars2 = ax2.bar(feedback_avgs.index, feedback_avgs.values, color='#6C63FF')
+        ax2.set_ylim(0, 5)
+        for i, bar in enumerate(bars2):
+            yval = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width()/2, yval + 0.08, f'{yval:.2f}', ha='center', va='bottom', fontsize=15)
+        ax2.set_title("Average Feedback per Parameter", fontsize=18)
+        ax2.set_ylabel("Average Score (out of 5)", fontsize=15)
+        ax2.tick_params(axis='x', labelsize=14)
+        ax2.tick_params(axis='y', labelsize=13)
+        st.pyplot(fig2)
+
+        # ---- Appreciations Section ----
+        if appreciations_col:
+            appreciations = fb[appreciations_col].dropna().astype(str).unique()
+            if appreciations.size > 0:
+                st.markdown("<h2 style='font-size:1.6rem;'>🌟 Appreciations</h2>", unsafe_allow_html=True)
+                for app in appreciations:
+                    st.markdown(
+                        f"<div style='margin-bottom:18px; font-size:1.4rem; color:#4B3F72; font-style:italic; font-family:serif;'>"
+                        f"“{app.strip()}”</div>",
+                        unsafe_allow_html=True)
+            else:
+                st.info("No appreciations/comments were provided.")
         else:
-            st.info("No feedback scores available for this batch.")
+            st.info("No appreciations/comments column found in feedback.")
 
 else:
     st.error("❌ Failed to load one or more Excel files from GitHub. Please check your file names or batch folder in the repository.")
